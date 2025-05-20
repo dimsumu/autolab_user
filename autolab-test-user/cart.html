@@ -1,0 +1,1872 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <title>Shopping Cart - Autolabs</title>
+    <style>
+        /* Reset and Base Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f8f9fa;
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar Styles */
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            margin-right: auto;
+            text-decoration: none;
+        }
+
+        a {
+            text-decoration: none;
+            /* Remove underline for all links */
+        }
+
+        .header>div {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+        }
+
+        .logo svg {
+            margin-right: 10px;
+        }
+
+        .logo span {
+            color: #2c3e50;
+            /* Keep the text color as it is */
+            position: relative;
+            /* For the custom underline */
+        }
+
+        .logo span::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 2px;
+            bottom: -4px;
+            left: 0;
+            background-color: #e21b1b;
+            /* Red underline */
+            transform: scaleX(1);
+            /* Always visible */
+        }
+
+        .nav-item {
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            color: white;
+            text-decoration: none;
+            transition: background 0.3s;
+        }
+
+        .nav-item svg {
+            margin-right: 15px;
+        }
+
+        .nav-item:hover {
+            background-color: #444;
+        }
+
+        .nav-item.active {
+            background-color: #e21b1b;
+        }
+
+        /* Main Content Area */
+        .main-content {
+            width: 100%;
+            padding: 40px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            color: #2c3e50;
+            font-weight: 600;
+        }
+
+        .user-actions {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            position: relative;
+            z-index: 9999 !important;
+        }
+
+        .cart-icon,
+        .notifications,
+        .user-avatar {
+            position: relative;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 8px;
+            transition: background-color 0.3s;
+        }
+
+        .cart-icon:hover,
+        .notifications:hover {
+            background-color: #f1f1f1;
+        }
+
+        .cart-count,
+        .notifications-count {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background-color: #e21b1b;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background-color: #e21b1b;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            position: relative;
+            z-index: 9999 !important;
+            margin-right: 20px;
+            top: -5px;
+        }
+
+        .dropdown-menu {
+            position: absolute;
+            top: 45px;
+            right: -60px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            padding: 8px 0;
+            min-width: 200px;
+            display: none;
+            z-index: 10000;
+        }
+
+        .dropdown-menu.active {
+            display: block;
+        }
+
+        .dropdown-item {
+            padding: 8px 16px;
+            display: block;
+            color: #2c3e50;
+        }
+
+        .dropdown-divider {
+            height: 1px;
+            background-color: #eee;
+            margin: 8px 0;
+        }
+
+        .dropdown-item.logout {
+            color: #e21b1b;
+            cursor: pointer;
+        }
+
+        .dropdown-item.logout:hover,
+        .dropdown-item.order:hover {
+            background-color: #f8f8f8;
+        }
+
+        .header-icons {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-left: auto;
+        }
+
+        /* Cart Content */
+        .cart-container {
+            display: flex;
+            gap: 30px;
+            margin-top: 20px;
+        }
+
+        .cart-items {
+            flex: 2;
+            background-color: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .order-summary {
+            flex: 1;
+            background-color: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            height: fit-content;
+        }
+
+        .cart-title,
+        .summary-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+
+        .cart-item {
+            display: flex;
+            border-bottom: 1px solid #e9ecef;
+            padding: 20px 0;
+        }
+
+        .cart-item-image {
+    width: 100px;
+    height: 100px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 20px;
+    overflow: hidden; /* Added to contain the image */
+}
+
+.cart-item-image img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+        .cart-item-details {
+            flex: 1;
+        }
+
+        .cart-item-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .cart-item-sku {
+            font-size: 14px;
+            color: #777;
+            margin-bottom: 10px;
+        }
+
+        .cart-item-price {
+            font-size: 16px;
+            font-weight: 600;
+            color: #e21b1b;
+        }
+
+        .cart-item-actions {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .quantity-control {
+            display: flex;
+            align-items: center;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .quantity-btn {
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #f8f9fa;
+            border: none;
+            cursor: pointer;
+        }
+
+        .quantity-input {
+            width: 40px;
+            height: 30px;
+            border: none;
+            border-left: 1px solid #e9ecef;
+            border-right: 1px solid #e9ecef;
+            text-align: center;
+        }
+
+        .remove-item {
+            color: #777;
+            cursor: pointer;
+            transition: color 0.3s;
+        }
+
+        .remove-item:hover {
+            color: #e21b1b;
+        }
+
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            font-size: 16px;
+            color: #2c3e50;
+        }
+
+        .summary-row.total {
+            font-size: 20px;
+            font-weight: 600;
+            border-top: 1px solid #e9ecef;
+            margin-top: 10px;
+            padding-top: 20px;
+        }
+
+        .checkout-btn {
+            padding: 15px;
+            background-color: #e21b1b;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .checkout-btn:hover {
+            background-color: #c41818;
+        }
+
+        .checkout-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .checkout-btn {
+            flex: 1;
+            white-space: nowrap;
+        }
+
+        .checkout-btn.without-payment {
+            background-color: #555;
+        }
+
+        .checkout-btn.without-payment:hover {
+            background-color: #444;
+        }
+
+        .continue-shopping {
+            display: inline-block;
+            padding: 15px 25px;
+            background-color: #e21b1b;
+            color: white;
+            border-radius: 8px;
+            font-weight: 500;
+            text-decoration: none;
+            transition: background-color 0.3s;
+            border: none;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+
+        .continue-shopping:hover {
+            background-color: #c41818;
+        }
+
+        .empty-cart {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 60px 0;
+        }
+
+        .empty-cart svg {
+            color: #e21b1b;
+            margin-bottom: 20px;
+        }
+
+        .empty-cart-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .empty-cart-subtitle {
+            font-size: 16px;
+            color: #777;
+            margin-bottom: 30px;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 15px;
+            }
+
+            .cart-container {
+                flex-direction: column;
+            }
+
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+            }
+
+            .user-actions {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .cart-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .cart-item-image {
+                margin-bottom: 15px;
+            }
+
+            .cart-item-actions {
+                margin-top: 15px;
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .checkout-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="main-content">
+        <div class="header">
+            <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                <!-- Logo (replacing user-info position) -->
+                <a href="catalog.html">
+                    <div class="logo">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                            stroke="#e21b1b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="8"></circle>
+                            <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                        <span style="color: #2c3e50; font-weight: bold;">Autolabs</span>
+                    </div>
+                </a>
+                <!-- Group user info and icons together -->
+                <div style="display: flex; align-items: center; gap: 20px;">
+                    <!-- User info (moved next to header-icons) -->
+                    <div class="user-info">
+                        <div class="user-avatar" id="userAvatar">
+                            CU
+                        </div>
+                        <div>
+                            <div style="font-weight: 500;" id="userName">Customer Name</div>
+                            <div style="font-size: 12px; color: #555;">Customer</div>
+                        </div>
+                        <!-- Dropdown menu -->
+                        <div class="dropdown-menu" id="userDropdown">
+                            <div class="dropdown-item order"><a href="#"
+                                    style="text-decoration: none; color: inherit;">My Account</a></div>
+                            <div class="dropdown-divider"></div>
+                            <div class="dropdown-item order"><a href="myorder.html"
+                                    style="text-decoration: none; color: inherit;">My Orders</a></div>
+                            <div class="dropdown-divider"></div>
+                            <div class="dropdown-item logout" id="logoutButton">Logout</div>
+                        </div>
+                    </div>
+
+                    <!-- Cart and notification icons (remains the same) -->
+                    <div class="header-icons">
+                        <a href="cart.html" class="cart-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                fill="none" stroke="#e21b1b" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <circle cx="9" cy="21" r="1"></circle>
+                                <circle cx="20" cy="21" r="1"></circle>
+                                <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                            </svg>
+                            <span class="cart-count" id="cartCount">0</span>
+                        </a>
+                        <div class="notifications">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                                <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                            </svg>
+                            <span class="notifications-count">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="cart-container">
+            <!-- Cart Items Section -->
+            <div class="cart-items">
+                <!-- Empty Cart State (Initially shown) -->
+                <div id="emptyCartState" class="empty-cart">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="9" cy="21" r="1"></circle>
+                        <circle cx="20" cy="21" r="1"></circle>
+                        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                    </svg>
+                    <div class="empty-cart-title">Your cart is empty</div>
+                    <div class="empty-cart-subtitle">Looks like you haven't added any items to your cart yet.</div>
+                    <a href="catalog.html" class="continue-shopping">Continue Shopping</a>
+                </div>
+
+                <!-- Cart Items List (Hidden until items are added) -->
+                <div id="cartItemsList" style="display: none;">
+                    <div class="cart-title" style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>Shopping Cart</span>
+                        <div style="display: flex; align-items: center;">
+                            <input type="checkbox" id="select-all-items" checked>
+                            <label for="select-all-items"
+                                style="margin-left: 8px; font-size: 14px; font-weight: normal;">Select All</label>
+                        </div>
+                    </div>
+                    <div id="cartItemsContainer">
+                        <div class="cart-item">
+                            <div style="display: flex; align-items: center; margin-right: 15px;">
+                                <input type="checkbox" id="select-item-{item.id}" class="item-checkbox" checked>
+                            </div>
+                            <div class="cart-item-image">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24"
+                                    fill="none" stroke="#999" stroke-width="1" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <circle cx="12" cy="12" r="6"></circle>
+                                    <circle cx="12" cy="12" r="2"></circle>
+                                </svg>
+                            </div>
+                            <div class="cart-item-details">
+                                <div class="cart-item-name">${item.product.name}</div>
+                                <div class="cart-item-sku">${item.product.product_id}</div>
+                                <div class="cart-item-price">RM ${item.product.price.toFixed(2)}</div>
+                            </div>
+                            <div class="cart-item-actions">
+                                <div class="quantity-control">
+                                    <button class="quantity-btn minus-btn" data-id="${item.id}">-</button>
+                                    <input type="number" class="quantity-input" value="${item.quantity}" min="1"
+                                        data-id="${item.id}">
+                                    <button class="quantity-btn plus-btn" data-id="${item.id}">+</button>
+                                </div>
+                                <div class="remove-item" data-id="${item.id}">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                        stroke-linejoin="round">
+                                        <polyline points="3 6 5 6 21 6"></polyline>
+                                        <path
+                                            d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
+                                        </path>
+                                        <line x1="10" y1="11" x2="10" y2="17"></line>
+                                        <line x1="14" y1="11" x2="14" y2="17"></line>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Order Summary Section -->
+            <div class="order-summary" id="orderSummary">
+                <div class="summary-title">Order Summary</div>
+                <div class="summary-row">
+                    <div>Subtotal</div>
+                    <div id="subtotalAmount">RM 0.00</div>
+                </div>
+                <div class="summary-row total">
+                    <div>Total</div>
+                    <div id="totalAmount">RM 0.00</div>
+                </div>
+                <div id="selectedItemsTotal"
+                    style="display: none; font-size: 14px; color: #e21b1b; margin-top: 5px; text-align: right;">
+                    Selected: RM 0.00
+                </div>
+                <div class="checkout-buttons">
+                    <button class="checkout-btn" id="checkoutBtn" disabled>Checkout</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Supabase configuration
+        const supabaseUrl = 'https://bbwimjvqpyxwhovihtfm.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJid2ltanZxcHl4d2hvdmlodGZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU0MjAwMDksImV4cCI6MjA2MDk5NjAwOX0._D3wackPNKg-IbiswH7M-3wqeQRP6ujMmcJ9bb7_1z0';
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+        // Global variables
+        let cartItems = [];
+        let products = {};
+        let subtotal = 0;
+        let total = 0;
+
+        // DOM Elements
+        let emptyCartState;
+        let cartItemsList;
+        let cartItemsContainer;
+        let cartCountElem;
+        let subtotalElem;
+        let totalElem;
+        let checkoutBtn;
+
+        // Initialize page on DOM content loaded
+        document.addEventListener('DOMContentLoaded', async function () {
+            console.log("Initializing cart page");
+
+            // Initialize DOM element references
+            emptyCartState = document.getElementById('emptyCartState');
+            cartItemsList = document.getElementById('cartItemsList');
+            cartItemsContainer = document.getElementById('cartItemsContainer');
+            cartCountElem = document.getElementById('cartCount');
+            subtotalElem = document.getElementById('subtotalAmount');
+            totalElem = document.getElementById('totalAmount');
+            checkoutBtn = document.getElementById('checkoutBtn');
+
+            console.log("DOM elements initialized");
+
+
+            const cartContainer = document.querySelector('.cart-container');
+
+            // Create animated link
+            const viewOrdersLink = document.createElement('div');
+            viewOrdersLink.style.textAlign = 'center';
+            viewOrdersLink.style.marginTop = '20px';
+            viewOrdersLink.style.padding = '10px';
+            viewOrdersLink.innerHTML = 'Click to view <a href="myorder.html" style="display: inline-block; color: #e21b1b; font-weight: bold; text-decoration: none; border-bottom: 2px solid #e21b1b; transition: all 0.3s ease; animation: colorPulse 2s infinite;">My Orders</a>';
+
+            // Add link after cart container
+            cartContainer.parentNode.insertBefore(viewOrdersLink, cartContainer.nextSibling);
+
+            // Add animation style
+            const animationStyle = document.createElement('style');
+            animationStyle.textContent = `
+        @keyframes colorPulse {
+            0% { color: #e21b1b; }
+            50% { color: #ff6b6b; }
+            100% { color: #e21b1b; }
+        }
+    `;
+            document.head.appendChild(animationStyle);
+            // Check user authentication
+            const userStr = sessionStorage.getItem('currentUser');
+            if (userStr) {
+                console.log("User found in session storage");
+                const user = JSON.parse(userStr);
+                updateUIForLoggedInUser(user);
+
+                // Load cart data
+                await loadCartItems(user.id);
+            } else {
+                console.log("User not in session storage, checking with Supabase");
+                // If not in session, check with Supabase
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user) {
+                    console.log("User authenticated with Supabase:", user.id);
+                    // User is logged in but session data is missing
+                    // Get customer details from database
+                    const { data: customer, error } = await supabase
+                        .from('customers')
+                        .select('*')
+                        .eq('id', user.id)
+                        .single();
+
+                    if (!error && customer) {
+                        console.log("Customer details retrieved:", customer);
+                        // Store in session storage
+                        sessionStorage.setItem('currentUser', JSON.stringify(customer));
+                        updateUIForLoggedInUser(customer);
+
+                        // Load cart data
+                        await loadCartItems(customer.id);
+                    } else {
+                        console.log("Customer not found or error:", error);
+                        // Not found or error, redirect to login
+                        window.location.href = "customer-login.html";
+                    }
+                } else {
+                    console.log("User not authenticated, redirecting to login");
+                    // Not logged in, redirect to login
+                    window.location.href = "customer-login.html";
+                }
+            }
+
+            // Set up event listeners
+            setupEventListeners();
+            console.log("Cart page initialization complete");
+        });
+
+        // Load cart items for user
+        async function loadCartItems(userId) {
+            try {
+                console.log("Loading cart for user:", userId);
+
+                // First get cart items
+                const { data: cart, error: cartError } = await supabase
+                    .from('cart')
+                    .select('id, product_id, quantity')
+                    .eq('customer_id', userId);
+
+                if (cartError) {
+                    console.error('Error loading cart:', cartError);
+                    return;
+                }
+
+                if (!cart || cart.length === 0) {
+                    console.log("Cart is empty");
+                    showEmptyCartState();
+                    return;
+                }
+
+                console.log("Cart items retrieved:", cart);
+
+                // Get product details for each cart item
+                const productIds = cart.map(item => item.product_id);
+                console.log("Product IDs to fetch:", productIds);
+
+                const { data: productData, error: productError } = await supabase
+                    .from('products')
+                    .select('id, product_id, name, price, quantity, category, variations, image_url')
+                    .in('id', productIds);
+
+                if (productError) {
+                    console.error('Error loading product details:', productError);
+                    return;
+                }
+
+                console.log("Product data retrieved:", productData);
+
+                // Create a lookup object for products
+                products = {};
+                productData.forEach(product => {
+                    products[product.id] = product;
+                });
+
+                // Map cart items with product details
+                cartItems = cart.map(item => {
+                    const product = products[item.product_id];
+                    if (!product) {
+                        console.warn(`Product not found for ID: ${item.product_id}`);
+                        return null;
+                    }
+                    return {
+                        id: item.id,
+                        productId: item.product_id,
+                        quantity: item.quantity,
+                        product: product
+                    };
+                }).filter(item => item !== null); // Remove any null items (products not found)
+
+                console.log("Mapped cart items:", cartItems);
+
+                // Update cart display
+                updateCartDisplay();
+
+            } catch (error) {
+                console.error('Error loading cart:', error);
+            }
+        }
+
+        // Show empty cart state
+        function showEmptyCartState() {
+            if (emptyCartState) emptyCartState.style.display = 'flex';
+            if (cartItemsList) cartItemsList.style.display = 'none';
+
+            const orderSummary = document.getElementById('orderSummary');
+            if (orderSummary) orderSummary.style.opacity = '0.5';
+
+            if (checkoutBtn) checkoutBtn.disabled = true;
+        }
+
+        // Show cart items state
+        function showCartItemsState() {
+            if (emptyCartState) emptyCartState.style.display = 'none';
+            if (cartItemsList) cartItemsList.style.display = 'block';
+
+            const orderSummary = document.getElementById('orderSummary');
+            if (orderSummary) orderSummary.style.opacity = '1';
+
+            if (checkoutBtn) checkoutBtn.disabled = false;
+        }
+
+        // Update cart display
+        function updateCartDisplay() {
+            // Update cart count in header
+            const totalItems = cartItems.reduce((total, item) => total + item.quantity, 0);
+            if (cartCountElem) cartCountElem.textContent = totalItems;
+
+            if (cartItems.length === 0) {
+                showEmptyCartState();
+                return;
+            }
+
+            // Show cart items
+            showCartItemsState();
+
+            // Clear and regenerate cart items
+            if (cartItemsContainer) cartItemsContainer.innerHTML = '';
+
+            // Calculate subtotal
+            subtotal = 0;
+
+            cartItems.forEach(item => {
+                if (!item.product) return;
+
+                const itemSubtotal = item.quantity * item.product.price;
+                subtotal += itemSubtotal;
+
+                const cartItemElement = document.createElement('div');
+                cartItemElement.className = 'cart-item';
+
+                cartItemElement.innerHTML = `
+            <div style="display: flex; align-items: center; margin-right: 15px;">
+                <input type="checkbox" id="select-item-${item.id}" class="item-checkbox" checked>
+            </div>
+           <div class="cart-item-image">
+    ${item.product.image_url ?
+                        `<img src="${item.product.image_url}" alt="${item.product.name}" style="max-width: 100%; max-height: 100%; object-fit: contain;">` :
+                        `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none"
+            stroke="#999" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <circle cx="12" cy="12" r="6"></circle>
+            <circle cx="12" cy="12" r="2"></circle>
+        </svg>`
+                    }
+</div>
+            <div class="cart-item-details">
+                <div class="cart-item-name">${item.product.name}</div>
+                <div class="cart-item-sku">${item.product.product_id}</div>
+                <div class="cart-item-price">RM ${item.product.price.toFixed(2)}</div>
+            </div>
+            <div class="cart-item-actions">
+                <div class="quantity-control">
+                    <button class="quantity-btn minus-btn" data-id="${item.id}">-</button>
+                    <input type="number" class="quantity-input" value="${item.quantity}" min="1" data-id="${item.id}">
+                    <button class="quantity-btn plus-btn" data-id="${item.id}">+</button>
+                </div>
+                <div class="remove-item" data-id="${item.id}">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        <line x1="10" y1="11" x2="10" y2="17"></line>
+                        <line x1="14" y1="11" x2="14" y2="17"></line>
+                    </svg>
+                </div>
+            </div>
+        `;
+
+                if (cartItemsContainer) cartItemsContainer.appendChild(cartItemElement);
+            });
+
+            // Update summary
+            total = subtotal;
+            if (subtotalElem) subtotalElem.textContent = `RM ${subtotal.toFixed(2)}`;
+            if (totalElem) totalElem.textContent = `RM ${total.toFixed(2)}`;
+
+            // Add event listeners for cart item actions
+            setupCartItemEvents();
+
+            // Add listeners for checkboxes
+            setupCheckboxListeners();
+
+            // Initially calculate selected items total
+            updateSelectedTotal();
+        }
+
+        // Setup checkbox listeners
+        function setupCheckboxListeners() {
+            // Select all checkbox
+            const selectAllCheckbox = document.getElementById('select-all-items');
+            if (selectAllCheckbox) {
+                selectAllCheckbox.addEventListener('change', function () {
+                    const isChecked = this.checked;
+                    document.querySelectorAll('.item-checkbox').forEach(checkbox => {
+                        checkbox.checked = isChecked;
+                    });
+                    updateSelectedTotal();
+                });
+            }
+
+            // Individual item checkboxes
+            document.querySelectorAll('.item-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('change', function () {
+                    updateSelectedTotal();
+
+                    // Check if all items are selected
+                    const allItems = Array.from(document.querySelectorAll('.item-checkbox'));
+                    if (allItems.length > 0) {
+                        const allChecked = allItems.every(cb => cb.checked);
+                        const selectAllCheckbox = document.getElementById('select-all-items');
+                        if (selectAllCheckbox) selectAllCheckbox.checked = allChecked;
+                    }
+                });
+            });
+        }
+
+        // Update selected items total
+        function updateSelectedTotal() {
+            const selectedTotal = cartItems.reduce((sum, item) => {
+                const checkbox = document.getElementById(`select-item-${item.id}`);
+                if (checkbox && checkbox.checked) {
+                    return sum + (item.quantity * item.product.price);
+                }
+                return sum;
+            }, 0);
+
+            const selectedItemsTotalElem = document.getElementById('selectedItemsTotal');
+
+            if (!selectedItemsTotalElem || !checkoutBtn) return;
+
+            // Show the selected total only if it's different from the cart total
+            if (selectedTotal < subtotal) {
+                selectedItemsTotalElem.style.display = 'block';
+                selectedItemsTotalElem.textContent = `Selected: RM ${selectedTotal.toFixed(2)}`;
+                // Enable checkout button if at least one item is selected
+                checkoutBtn.disabled = selectedTotal === 0;
+            } else {
+                selectedItemsTotalElem.style.display = 'none';
+                // Enable checkout button if cart has items
+                checkoutBtn.disabled = cartItems.length === 0;
+            }
+        }
+
+        // Set up event listeners for cart item actions
+        function setupCartItemEvents() {
+            // Quantity buttons
+            document.querySelectorAll('.minus-btn').forEach(btn => {
+                btn.addEventListener('click', async function () {
+                    const id = this.getAttribute('data-id');
+                    const item = cartItems.find(item => item.id === id);
+                    if (item && item.quantity > 1) {
+                        await updateCartItemQuantity(id, item.quantity - 1);
+                    }
+                });
+            });
+
+            document.querySelectorAll('.plus-btn').forEach(btn => {
+                btn.addEventListener('click', async function () {
+                    const id = this.getAttribute('data-id');
+                    const item = cartItems.find(item => item.id === id);
+                    if (item) {
+                        await updateCartItemQuantity(id, item.quantity + 1);
+                    }
+                });
+            });
+
+            // Quantity input changes
+            document.querySelectorAll('.quantity-input').forEach(input => {
+                input.addEventListener('change', async function () {
+                    const id = this.getAttribute('data-id');
+                    const newQuantity = parseInt(this.value);
+                    if (newQuantity > 0) {
+                        await updateCartItemQuantity(id, newQuantity);
+                    } else {
+                        this.value = 1;
+                        await updateCartItemQuantity(id, 1);
+                    }
+                });
+            });
+
+            // Remove item buttons
+            document.querySelectorAll('.remove-item').forEach(btn => {
+                btn.addEventListener('click', async function () {
+                    const id = this.getAttribute('data-id');
+                    await removeCartItem(id);
+                });
+            });
+        }
+
+        // Update cart item quantity
+        async function updateCartItemQuantity(itemId, newQuantity) {
+            try {
+                const { error } = await supabase
+                    .from('cart')
+                    .update({ quantity: newQuantity })
+                    .eq('id', itemId);
+
+                if (error) {
+                    console.error('Error updating cart item:', error);
+                    return;
+                }
+
+                // Update local cart items
+                const index = cartItems.findIndex(item => item.id === itemId);
+                if (index !== -1) {
+                    cartItems[index].quantity = newQuantity;
+                    updateCartDisplay();
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        // Remove cart item
+        async function removeCartItem(itemId) {
+            try {
+                const { error } = await supabase
+                    .from('cart')
+                    .delete()
+                    .eq('id', itemId);
+
+                if (error) {
+                    console.error('Error removing cart item:', error);
+                    return;
+                }
+
+                // Remove from local cart items
+                cartItems = cartItems.filter(item => item.id !== itemId);
+                updateCartDisplay();
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        // Update UI for logged-in user
+        function updateUIForLoggedInUser(user) {
+            // Update avatar with initials (first letter of name)
+            const userAvatar = document.getElementById('userAvatar');
+            if (userAvatar) {
+                const initials = user.name ? user.name.charAt(0) : 'C';
+                userAvatar.textContent = initials;
+            }
+
+            // Update user name
+            const userName = document.getElementById('userName');
+            if (userName) {
+                userName.textContent = user.name || 'Customer';
+            }
+
+            // Set up event listeners for dropdown
+            if (userAvatar) {
+                userAvatar.addEventListener('click', toggleDropdown);
+            }
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function (e) {
+                const dropdown = document.getElementById('userDropdown');
+                const avatar = document.getElementById('userAvatar');
+
+                if (dropdown && avatar && !avatar.contains(e.target) && !dropdown.contains(e.target)) {
+                    dropdown.classList.remove('active');
+                }
+            });
+
+            // Handle logout
+            const logoutButton = document.getElementById('logoutButton');
+            if (logoutButton) {
+                logoutButton.addEventListener('click', logout);
+            }
+        }
+
+        // Toggle dropdown menu
+        function toggleDropdown() {
+            const dropdown = document.getElementById('userDropdown');
+            if (dropdown) {
+                dropdown.classList.toggle('active');
+            }
+        }
+
+        // Set up event listeners
+        function setupEventListeners() {
+            // Checkout button
+            if (checkoutBtn) {
+                checkoutBtn.addEventListener('click', function () {
+                    proceedToCheckout();
+                });
+            }
+        }
+
+        // Process checkout
+        // Process checkout with enhanced UI
+        async function proceedToCheckout() {
+            try {
+                // Get current user
+                const userStr = sessionStorage.getItem('currentUser');
+                if (!userStr) {
+                    alert('Please log in to proceed with checkout');
+                    return;
+                }
+
+                const user = JSON.parse(userStr);
+
+                // Check if cart has items
+                if (cartItems.length === 0) {
+                    alert('Your cart is empty');
+                    return;
+                }
+
+                // Check which items are selected for checkout
+                const selectedItems = cartItems.filter(item => {
+                    const checkbox = document.getElementById(`select-item-${item.id}`);
+                    return checkbox && checkbox.checked;
+                });
+
+                if (selectedItems.length === 0) {
+                    alert('Please select at least one item to checkout');
+                    return;
+                }
+
+                // Calculate selected items total
+                const selectedTotal = selectedItems.reduce((sum, item) => {
+                    return sum + (item.quantity * item.product.price);
+                }, 0);
+
+                // Show combined checkout dialog
+                const checkoutData = await showCombinedCheckoutDialog(user, selectedTotal);
+                if (!checkoutData) return; // User cancelled
+
+                // Regular confirmation for order placement
+                if (!confirm("Are you sure you want to place this order?")) {
+                    return;
+                }
+
+                // Generate order ID (format: ORD-YYYY-XXXX)
+                const currentYear = new Date().getFullYear();
+                const randomNum = Math.floor(1000 + Math.random() * 9000);
+                const orderIdValue = `ORD-${currentYear}-${randomNum}`;
+
+                // Create a new order
+                const { data: order, error: orderError } = await supabase
+                    .from('orders')
+                    .insert({
+                        customer_id: user.id,
+                        amount: selectedTotal,
+                        status: 'verifying',
+                        payment_status: checkoutData.isPaid ? 'paid' : 'unpaid',
+                        address: checkoutData.deliveryAddress,
+                        order_date: new Date().toISOString(),
+                        order_id: orderIdValue,
+                        driver: checkoutData.driver,
+                        is_urgent: checkoutData.isUrgent
+                    })
+                    .select();
+
+                if (orderError) {
+                    console.error('Error creating order:', orderError);
+                    alert('Error processing order: ' + orderError.message);
+                    return;
+                }
+
+                // Get the new order ID
+                const orderId = order[0].id;
+
+                // Add order items with variations and category
+                const orderItems = [];
+
+                // Process each selected cart item to include variations and category
+                for (const item of selectedItems) {
+                    // Get full product details including variations and category
+                    const { data: productDetails, error: productError } = await supabase
+                        .from('products')
+                        .select('variations, category')
+                        .eq('id', item.productId)
+                        .single();
+
+                    if (productError) {
+                        console.error('Error fetching product details:', productError);
+                        continue;
+                    }
+
+                    // Create order item with all needed fields
+                    const orderItem = {
+                        order_id: orderId,
+                        product_id: item.productId,
+                        quantity: item.quantity,
+                        unit_price: item.product.price,
+                        variations: productDetails.variations || null,
+                        category: productDetails.category || null
+                    };
+
+                    orderItems.push(orderItem);
+                }
+
+                // Insert all order items
+                const { error: itemsError } = await supabase
+                    .from('order_products')
+                    .insert(orderItems);
+
+                if (itemsError) {
+                    console.error('Error adding order items:', itemsError);
+                    alert('Error processing order items: ' + itemsError.message);
+                    return;
+                }
+
+                // Remove checked out items from cart
+                for (const item of selectedItems) {
+                    const { error: removeError } = await supabase
+                        .from('cart')
+                        .delete()
+                        .eq('id', item.id);
+
+                    if (removeError) {
+                        console.error('Error removing cart item:', removeError);
+                    }
+                }
+
+                // Update local cart items
+                cartItems = cartItems.filter(item => {
+                    const checkbox = document.getElementById(`select-item-${item.id}`);
+                    return !(checkbox && checkbox.checked);
+                });
+
+                // Update cart display
+                updateCartDisplay();
+
+                // Show success message with payment and delivery info
+                let successMessage = 'Order placed successfully!';
+
+                // Add payment status info
+                if (checkoutData.isPaid) {
+                    successMessage += ' Your order is paid';
+                } else {
+                    successMessage += ' Your order is awaiting payment';
+                }
+
+                // Add delivery method info
+                successMessage += ' and is verifying.';
+                if (checkoutData.isUrgent) {
+                    successMessage += ' This order is marked as URGENT.';
+                }
+                successMessage += ` Delivery method: ${checkoutData.deliveryMethod.replace('_', ' ').toUpperCase()}.`;
+                successMessage += ` Assigned to: ${checkoutData.driver}.`;
+                successMessage += ` Your order ID is: ${orderIdValue}`;
+
+                alert(successMessage);
+
+            } catch (error) {
+                console.error('Error processing checkout:', error);
+                alert('An error occurred during checkout. Please try again.');
+            }
+        }
+        // Combined checkout dialog function - replaces all separate prompts
+        function showCombinedCheckoutDialog(user, total) {
+            return new Promise((resolve) => {
+                // Create dialog overlay
+                const overlay = document.createElement('div');
+                overlay.style.position = 'fixed';
+                overlay.style.top = '0';
+                overlay.style.left = '0';
+                overlay.style.width = '100%';
+                overlay.style.height = '100%';
+                overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+                overlay.style.display = 'flex';
+                overlay.style.justifyContent = 'center';
+                overlay.style.alignItems = 'center';
+                overlay.style.zIndex = '10000';
+                overlay.style.overflowY = 'auto';
+                overlay.style.padding = '20px 0';
+
+                // Create dialog box
+                const dialog = document.createElement('div');
+                dialog.style.backgroundColor = 'white';
+                dialog.style.borderRadius = '8px';
+                dialog.style.padding = '25px';
+                dialog.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.2)';
+                dialog.style.width = '800px';
+                dialog.style.maxWidth = '90%';
+                dialog.style.maxHeight = '90vh';
+                dialog.style.overflowY = 'auto';
+
+                // Dialog header
+                const header = document.createElement('div');
+                header.style.fontSize = '24px';
+                header.style.fontWeight = 'bold';
+                header.style.marginBottom = '20px';
+                header.style.color = '#2c3e50';
+                header.style.borderBottom = '1px solid #eee';
+                header.style.paddingBottom = '10px';
+                header.textContent = 'Order Summary';
+
+                // Order summary section (like Image 2)
+                const summarySection = document.createElement('div');
+                summarySection.style.marginBottom = '25px';
+
+                // Create table for order summary
+                const summaryTable = document.createElement('table');
+                summaryTable.style.width = '100%';
+                summaryTable.style.borderCollapse = 'collapse';
+                summaryTable.style.marginBottom = '15px';
+
+                // Table header
+                const tableHeader = document.createElement('thead');
+                tableHeader.innerHTML = `
+            <tr>
+                <th style="text-align: left; padding: 8px 15px 15px 0; border-bottom: 1px solid #ddd; font-weight: 500;">Product</th>
+                <th style="text-align: center; padding: 8px 15px 15px 0; border-bottom: 1px solid #ddd; font-weight: 500;">Quantity</th>
+                <th style="text-align: right; padding: 8px 15px 15px 0; border-bottom: 1px solid #ddd; font-weight: 500;">Price</th>
+                <th style="text-align: right; padding: 8px 0 15px 0; border-bottom: 1px solid #ddd; font-weight: 500;">Total</th>
+            </tr>
+        `;
+                summaryTable.appendChild(tableHeader);
+
+                // Table body
+                const tableBody = document.createElement('tbody');
+
+                // Calculate total items and display them
+                let selectedItems = [];
+                cartItems.forEach(item => {
+                    const checkbox = document.getElementById(`select-item-${item.id}`);
+                    if (checkbox && checkbox.checked) {
+                        selectedItems.push(item);
+
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                    <td style="padding: 12px 15px 12px 0; border-bottom: 1px solid #eee;">${item.product.name}</td>
+                    <td style="text-align: center; padding: 12px 15px 12px 0; border-bottom: 1px solid #eee;">${item.quantity}</td>
+                    <td style="text-align: right; padding: 12px 15px 12px 0; border-bottom: 1px solid #eee;">RM ${item.product.price.toFixed(2)}</td>
+                    <td style="text-align: right; padding: 12px 0 12px 0; border-bottom: 1px solid #eee;">RM ${(item.quantity * item.product.price).toFixed(2)}</td>
+                `;
+                        tableBody.appendChild(row);
+                    }
+                });
+
+                summaryTable.appendChild(tableBody);
+
+                // Table footer with total
+                const tableFooter = document.createElement('tfoot');
+                tableFooter.innerHTML = `
+            <tr>
+                <td colspan="3" style="text-align: right; padding: 15px 15px 0 0; font-weight: bold;">Total:</td>
+                <td style="text-align: right; padding: 15px 0 0 0; font-weight: bold; color: #e21b1b;">RM ${total.toFixed(2)}</td>
+            </tr>
+        `;
+                summaryTable.appendChild(tableFooter);
+
+                summarySection.appendChild(summaryTable);
+
+                // Shipping & Payment section header (like Image 2)
+                const shippingHeader = document.createElement('div');
+                shippingHeader.style.fontSize = '20px';
+                shippingHeader.style.fontWeight = 'bold';
+                shippingHeader.style.marginTop = '30px';
+                shippingHeader.style.marginBottom = '20px';
+                shippingHeader.style.color = '#2c3e50';
+                shippingHeader.textContent = 'Shipping & Payment';
+
+                // Create form container
+                const formContainer = document.createElement('div');
+                formContainer.style.display = 'flex';
+                formContainer.style.flexDirection = 'column';
+                formContainer.style.gap = '20px';
+
+                // 1. Delivery Method Section
+                const deliveryMethodLabel = document.createElement('div');
+                deliveryMethodLabel.textContent = 'Delivery Method';
+                deliveryMethodLabel.style.fontWeight = '500';
+                deliveryMethodLabel.style.marginBottom = '10px';
+
+                const deliveryMethodSelect = document.createElement('div');
+                deliveryMethodSelect.style.position = 'relative';
+                deliveryMethodSelect.style.width = '100%';
+
+                const deliverySelectBox = document.createElement('select');
+                deliverySelectBox.id = 'delivery-method';
+                deliverySelectBox.style.width = '100%';
+                deliverySelectBox.style.padding = '12px 15px';
+                deliverySelectBox.style.borderRadius = '4px';
+                deliverySelectBox.style.border = '1px solid #ced4da';
+                deliverySelectBox.style.appearance = 'none';
+                deliverySelectBox.style.backgroundColor = 'white';
+                deliverySelectBox.style.cursor = 'pointer';
+
+                // Add options
+                const deliveryOptions = [
+                    { value: 'driver', label: 'Driver (KL/Selangor)' },
+                    { value: 'lalamove', label: 'Lalamove Delivery' },
+                    { value: 'selfpickup', label: 'Self Pickup (KL)' }
+                ];
+
+                deliveryOptions.forEach(option => {
+                    const optionEl = document.createElement('option');
+                    optionEl.value = option.value;
+                    optionEl.textContent = option.label;
+                    deliverySelectBox.appendChild(optionEl);
+                });
+
+                // Add dropdown arrow
+                const selectArrow = document.createElement('div');
+                selectArrow.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); pointer-events: none;">
+                <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+        `;
+
+                deliveryMethodSelect.appendChild(deliverySelectBox);
+                deliveryMethodSelect.appendChild(selectArrow);
+
+                const deliveryMethodSection = document.createElement('div');
+                deliveryMethodSection.appendChild(deliveryMethodLabel);
+                deliveryMethodSection.appendChild(deliveryMethodSelect);
+
+                // Add event listener to handle address section visibility
+                deliverySelectBox.addEventListener('change', function () {
+                    const addressSection = document.getElementById('address-section');
+                    if (this.value === 'selfpickup') {
+                        addressSection.style.display = 'none';
+                    } else {
+                        addressSection.style.display = 'block';
+                    }
+                });
+
+                // 2. Address Section (styled like Image 3)
+                const addressSection = document.createElement('div');
+                addressSection.id = 'address-section';
+
+                const addressLabel = document.createElement('div');
+                addressLabel.textContent = 'Delivery Address';
+                addressLabel.style.fontWeight = '500';
+                addressLabel.style.marginBottom = '15px';
+
+                const addressesContainer = document.createElement('div');
+                addressesContainer.style.display = 'flex';
+                addressesContainer.style.gap = '15px';
+                addressesContainer.style.flexWrap = 'wrap';
+
+                // Primary address card
+                const primaryCard = document.createElement('div');
+                primaryCard.className = 'address-card';
+                primaryCard.style.flex = '1';
+                primaryCard.style.minWidth = '250px';
+                primaryCard.style.border = '1px solid #e21b1b';
+                primaryCard.style.borderRadius = '8px';
+                primaryCard.style.padding = '15px';
+                primaryCard.style.position = 'relative';
+                primaryCard.style.cursor = 'pointer';
+                primaryCard.style.backgroundColor = '#fff3f3';
+
+                // Primary badge
+                const primaryBadge = document.createElement('span');
+                primaryBadge.textContent = 'Primary';
+                primaryBadge.style.position = 'absolute';
+                primaryBadge.style.top = '10px';
+                primaryBadge.style.right = '10px';
+                primaryBadge.style.backgroundColor = '#e21b1b';
+                primaryBadge.style.color = 'white';
+                primaryBadge.style.padding = '3px 8px';
+                primaryBadge.style.borderRadius = '4px';
+                primaryBadge.style.fontSize = '12px';
+                primaryBadge.style.fontWeight = 'bold';
+
+                // Primary radio
+                const primaryRadio = document.createElement('input');
+                primaryRadio.type = 'radio';
+                primaryRadio.id = 'primary-address-radio';
+                primaryRadio.name = 'addressType';
+                primaryRadio.value = 'primary';
+                primaryRadio.checked = true;
+                primaryRadio.style.marginRight = '10px';
+
+                // Primary address text area
+                const primaryAddressText = document.createElement('textarea');
+                primaryAddressText.id = 'primary-address-text';
+                primaryAddressText.style.width = '100%';
+                primaryAddressText.style.padding = '10px';
+                primaryAddressText.style.borderRadius = '4px';
+                primaryAddressText.style.border = '1px solid #ced4da';
+                primaryAddressText.style.minHeight = '80px';
+                primaryAddressText.style.marginTop = '10px';
+                primaryAddressText.value = user.address || '';
+
+                primaryCard.appendChild(primaryBadge);
+                primaryCard.appendChild(primaryRadio);
+                primaryCard.appendChild(document.createTextNode('Primary Address'));
+                primaryCard.appendChild(primaryAddressText);
+
+                // Alternative address card
+                const altCard = document.createElement('div');
+                altCard.className = 'address-card';
+                altCard.style.flex = '1';
+                altCard.style.minWidth = '250px';
+                altCard.style.border = '1px solid #ddd';
+                altCard.style.borderRadius = '8px';
+                altCard.style.padding = '15px';
+                altCard.style.position = 'relative';
+                altCard.style.cursor = 'pointer';
+
+                // Alternative radio
+                const altRadio = document.createElement('input');
+                altRadio.type = 'radio';
+                altRadio.id = 'alt-address-radio';
+                altRadio.name = 'addressType';
+                altRadio.value = 'alternative';
+                altRadio.style.marginRight = '10px';
+
+                // Alternative address text area
+                const altAddressText = document.createElement('textarea');
+                altAddressText.id = 'alt-address-text';
+                altAddressText.style.width = '100%';
+                altAddressText.style.padding = '10px';
+                altAddressText.style.borderRadius = '4px';
+                altAddressText.style.border = '1px solid #ced4da';
+                altAddressText.style.minHeight = '80px';
+                altAddressText.style.marginTop = '10px';
+                altAddressText.value = user.alternative_address || '';
+
+                altCard.appendChild(altRadio);
+                altCard.appendChild(document.createTextNode('Alternative Address'));
+                altCard.appendChild(altAddressText);
+
+                // Add click handlers for address cards
+                primaryCard.addEventListener('click', function () {
+                    primaryRadio.checked = true;
+                    primaryCard.style.borderColor = '#e21b1b';
+                    primaryCard.style.backgroundColor = '#fff3f3';
+                    altCard.style.borderColor = '#ddd';
+                    altCard.style.backgroundColor = 'white';
+                });
+
+                altCard.addEventListener('click', function () {
+                    altRadio.checked = true;
+                    altCard.style.borderColor = '#e21b1b';
+                    altCard.style.backgroundColor = '#fff3f3';
+                    primaryCard.style.borderColor = '#ddd';
+                    primaryCard.style.backgroundColor = 'white';
+                });
+
+                addressesContainer.appendChild(primaryCard);
+                addressesContainer.appendChild(altCard);
+
+                addressSection.appendChild(addressLabel);
+                addressSection.appendChild(addressesContainer);
+
+                // 3. Payment Method Section
+                const paymentMethodLabel = document.createElement('div');
+                paymentMethodLabel.textContent = 'Payment Option';
+                paymentMethodLabel.style.fontWeight = '500';
+                paymentMethodLabel.style.marginBottom = '10px';
+
+                const paymentOptions = document.createElement('div');
+                paymentOptions.style.display = 'flex';
+                paymentOptions.style.flexDirection = 'column';
+                paymentOptions.style.gap = '10px';
+
+                // Pay Now option
+                const payNowOption = document.createElement('div');
+                payNowOption.style.display = 'flex';
+                payNowOption.style.alignItems = 'center';
+                payNowOption.style.padding = '10px';
+                payNowOption.style.border = '1px solid #e21b1b';
+                payNowOption.style.borderRadius = '8px';
+                payNowOption.style.backgroundColor = '#fff3f3';
+                payNowOption.style.cursor = 'pointer';
+
+                const payNowRadio = document.createElement('input');
+                payNowRadio.type = 'radio';
+                payNowRadio.id = 'pay-now-radio';
+                payNowRadio.name = 'paymentMethod';
+                payNowRadio.value = 'paid';
+                payNowRadio.checked = true;
+                payNowRadio.style.marginRight = '10px';
+
+                payNowOption.appendChild(payNowRadio);
+                payNowOption.appendChild(document.createTextNode('Pay Now'));
+
+                // Pay Later option
+                const payLaterOption = document.createElement('div');
+                payLaterOption.style.display = 'flex';
+                payLaterOption.style.alignItems = 'center';
+                payLaterOption.style.padding = '10px';
+                payLaterOption.style.border = '1px solid #ddd';
+                payLaterOption.style.borderRadius = '8px';
+                payLaterOption.style.cursor = 'pointer';
+
+                const payLaterRadio = document.createElement('input');
+                payLaterRadio.type = 'radio';
+                payLaterRadio.id = 'pay-later-radio';
+                payLaterRadio.name = 'paymentMethod';
+                payLaterRadio.value = 'unpaid';
+                payLaterRadio.style.marginRight = '10px';
+
+                payLaterOption.appendChild(payLaterRadio);
+                payLaterOption.appendChild(document.createTextNode('Pay Later'));
+
+                // Add click handlers for payment options
+                payNowOption.addEventListener('click', function () {
+                    payNowRadio.checked = true;
+                    payNowOption.style.borderColor = '#e21b1b';
+                    payNowOption.style.backgroundColor = '#fff3f3';
+                    payLaterOption.style.borderColor = '#ddd';
+                    payLaterOption.style.backgroundColor = 'white';
+                });
+
+                payLaterOption.addEventListener('click', function () {
+                    payLaterRadio.checked = true;
+                    payLaterOption.style.borderColor = '#e21b1b';
+                    payLaterOption.style.backgroundColor = '#fff3f3';
+                    payNowOption.style.borderColor = '#ddd';
+                    payNowOption.style.backgroundColor = 'white';
+                });
+
+                paymentOptions.appendChild(payNowOption);
+                paymentOptions.appendChild(payLaterOption);
+
+                const paymentMethodSection = document.createElement('div');
+                paymentMethodSection.appendChild(paymentMethodLabel);
+                paymentMethodSection.appendChild(paymentOptions);
+
+                // 4. Urgent Order Section
+                const urgentOrderLabel = document.createElement('div');
+                urgentOrderLabel.textContent = 'Mark as Urgent Order';
+                urgentOrderLabel.style.fontWeight = '500';
+                urgentOrderLabel.style.marginBottom = '10px';
+
+                const urgentCheckboxContainer = document.createElement('div');
+                urgentCheckboxContainer.style.display = 'flex';
+                urgentCheckboxContainer.style.alignItems = 'center';
+                urgentCheckboxContainer.style.padding = '10px';
+                urgentCheckboxContainer.style.border = '1px solid #ddd';
+                urgentCheckboxContainer.style.borderRadius = '8px';
+                urgentCheckboxContainer.style.cursor = 'pointer';
+
+                const urgentCheckbox = document.createElement('input');
+                urgentCheckbox.type = 'checkbox';
+                urgentCheckbox.id = 'urgent-checkbox';
+                urgentCheckbox.style.marginRight = '10px';
+
+                urgentCheckboxContainer.appendChild(urgentCheckbox);
+                urgentCheckboxContainer.appendChild(document.createTextNode('This order is urgent and needs immediate attention'));
+
+                // Add click handler for urgent checkbox
+                urgentCheckboxContainer.addEventListener('click', function () {
+                    urgentCheckbox.checked = !urgentCheckbox.checked;
+
+                    if (urgentCheckbox.checked) {
+                        urgentCheckboxContainer.style.borderColor = '#e21b1b';
+                        urgentCheckboxContainer.style.backgroundColor = '#fff3f3';
+
+                        // Disable driver option when urgent is checked
+                        const driverOption = deliverySelectBox.querySelector('option[value="driver"]');
+                        driverOption.disabled = true;
+
+                        // If driver was selected, change to lalamove
+                        if (deliverySelectBox.value === 'driver') {
+                            deliverySelectBox.value = 'lalamove';
+                        }
+                    } else {
+                        urgentCheckboxContainer.style.borderColor = '#ddd';
+                        urgentCheckboxContainer.style.backgroundColor = 'white';
+
+                        // Re-enable driver option when urgent is unchecked
+                        const driverOption = deliverySelectBox.querySelector('option[value="driver"]');
+                        driverOption.disabled = false;
+                    }
+                });
+
+                const urgentOrderSection = document.createElement('div');
+                urgentOrderSection.appendChild(urgentOrderLabel);
+                urgentOrderSection.appendChild(urgentCheckboxContainer);
+
+                // Buttons section
+                const buttonsContainer = document.createElement('div');
+                buttonsContainer.style.display = 'flex';
+                buttonsContainer.style.justifyContent = 'flex-end';
+                buttonsContainer.style.gap = '15px';
+                buttonsContainer.style.marginTop = '30px';
+
+                // Cancel button
+                const cancelButton = document.createElement('button');
+                cancelButton.textContent = 'Cancel';
+                cancelButton.style.padding = '12px 20px';
+                cancelButton.style.backgroundColor = '#f8f9fa';
+                cancelButton.style.color = '#212529';
+                cancelButton.style.border = '1px solid #dee2e6';
+                cancelButton.style.borderRadius = '4px';
+                cancelButton.style.cursor = 'pointer';
+                cancelButton.style.fontWeight = '500';
+
+                // Place Order button
+                const placeOrderButton = document.createElement('button');
+                placeOrderButton.textContent = 'Place Order';
+                placeOrderButton.style.padding = '12px 25px';
+                placeOrderButton.style.backgroundColor = '#e21b1b';
+                placeOrderButton.style.color = 'white';
+                placeOrderButton.style.border = 'none';
+                placeOrderButton.style.borderRadius = '4px';
+                placeOrderButton.style.cursor = 'pointer';
+                placeOrderButton.style.fontWeight = '600';
+
+                // Add event listeners for buttons
+                cancelButton.addEventListener('click', () => {
+                    document.body.removeChild(overlay);
+                    resolve(null);
+                });
+
+                placeOrderButton.addEventListener('click', async () => {
+                    // Get delivery method
+                    const deliveryMethod = deliverySelectBox.value;
+
+                    // Handle address based on delivery method
+                    let deliveryAddress = '';
+                    let driver = '';
+
+                    if (deliveryMethod === 'selfpickup') {
+                        deliveryAddress = 'Self Pickup (KL)';
+                        driver = 'Self Pickup';
+                    } else {
+                        // Get selected address
+                        const addressType = document.querySelector('input[name="addressType"]:checked').value;
+                        const primaryAddressValue = document.getElementById('primary-address-text').value.trim();
+                        const altAddressValue = document.getElementById('alt-address-text').value.trim();
+
+                        if (addressType === 'primary') {
+                            if (!primaryAddressValue) {
+                                alert('Please enter your primary address');
+                                return;
+                            }
+                            deliveryAddress = primaryAddressValue;
+                        } else {
+                            if (!altAddressValue) {
+                                alert('Please enter your alternative address');
+                                return;
+                            }
+                            deliveryAddress = altAddressValue;
+                        }
+
+                        // Set driver based on delivery method
+                        if (deliveryMethod === 'driver') {
+                            // Randomly assign Driver 1 or Driver 2
+                            driver = Math.random() < 0.5 ? 'Driver 1' : 'Driver 2';
+                        } else if (deliveryMethod === 'lalamove') {
+                            driver = 'Lalamove';
+                        }
+
+                        // Update user's addresses in database if changed
+                        const userUpdates = {};
+
+                        if (primaryAddressValue !== user.address) {
+                            userUpdates.address = primaryAddressValue;
+                        }
+
+                        if (altAddressValue !== user.alternative_address) {
+                            userUpdates.alternative_address = altAddressValue;
+                        }
+
+                        // Only update if changes were made
+                        if (Object.keys(userUpdates).length > 0) {
+                            const { error } = await supabase
+                                .from('customers')
+                                .update(userUpdates)
+                                .eq('id', user.id);
+
+                            if (error) {
+                                console.error('Error updating addresses:', error);
+                            } else {
+                                // Update session storage
+                                user.address = primaryAddressValue;
+                                user.alternative_address = altAddressValue;
+                                sessionStorage.setItem('currentUser', JSON.stringify(user));
+                            }
+                        }
+                    }
+
+                    // Get payment method
+                    const isPaid = document.querySelector('input[name="paymentMethod"]:checked').value === 'paid';
+
+                    // Get urgent status
+                    const isUrgent = document.getElementById('urgent-checkbox').checked;
+
+                    // Return checkout data
+                    document.body.removeChild(overlay);
+                    resolve({
+                        deliveryMethod,
+                        deliveryAddress,
+                        isPaid,
+                        isUrgent,
+                        driver
+                    });
+                });
+
+                buttonsContainer.appendChild(cancelButton);
+                buttonsContainer.appendChild(placeOrderButton);
+
+                // Assemble all sections
+                formContainer.appendChild(deliveryMethodSection);
+                formContainer.appendChild(addressSection);
+                formContainer.appendChild(paymentMethodSection);
+                formContainer.appendChild(urgentOrderSection);
+
+                dialog.appendChild(header);
+                dialog.appendChild(summarySection);
+                dialog.appendChild(shippingHeader);
+                dialog.appendChild(formContainer);
+                dialog.appendChild(buttonsContainer);
+
+                overlay.appendChild(dialog);
+                document.body.appendChild(overlay);
+
+                // Initialize state - if self-pickup is selected initially, hide address section
+                if (deliverySelectBox.value === 'selfpickup') {
+                    addressSection.style.display = 'none';
+                }
+            });
+        }
+
+
+        // Handle logout
+        async function logout() {
+            const { error } = await supabase.auth.signOut();
+            if (error) {
+                console.error('Error signing out:', error);
+                alert('Error signing out. Please try again.');
+            } else {
+                // Clear session storage
+                sessionStorage.removeItem('currentUser');
+
+                // Redirect to login page
+                window.location.href = "customer-login.html";
+            }
+        }
+
+    </script>
+</body>
+
+</html>
